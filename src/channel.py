@@ -11,7 +11,10 @@ class Channel:
     """Класс для ютуб-канала"""
 
     def __init__(self, channel_id: str) -> None:
-        """Экземпляр инициализируется id канала. Дальше все данные будут подтягиваться по API."""
+        """
+        Экземпляр инициализируется id канала.
+        Дальше все данные будут подтягиваться по API.
+        """
         self.__channel_id = channel_id
         youtube = build('youtube', 'v3', developerKey=api_key)
         channel = youtube.channels().list(id=self.__channel_id, part='snippet,statistics').execute()
@@ -21,6 +24,9 @@ class Channel:
         self.subscriberCount = channel['items'][0]['statistics']['subscriberCount']
         self.video_count = channel['items'][0]['statistics']['videoCount']
         self.viewCount = channel['items'][0]['statistics']['viewCount']
+
+    def __str__(self):
+        return f"{self.title} ({self.url})"
 
     @property
     def channel_id(self):
@@ -39,3 +45,24 @@ class Channel:
                            subscriberCount=self.subscriberCount,
                            video_count=self.video_count,
                            viewCount=self.viewCount), fp, ensure_ascii=False)
+
+    def __add__(self, other):
+        return int(self.subscriberCount) + int(other.subscriberCount)
+
+    def __sub__(self, other):
+        return int(self.subscriberCount) - int(other.subscriberCount)
+
+    def __gt__(self, other):
+        return self.subscriberCount > other.subscriberCount
+
+    def __ge__(self, other):
+        return self.subscriberCount >= other.subscriberCount
+
+    def __lt__(self, other):
+        return self.subscriberCount < other.subscriberCount
+
+    def __le__(self, other):
+        return self.subscriberCount <= other.subscriberCount
+
+    def __eq__(self, other):
+        return self.subscriberCount == other.subscriberCount
