@@ -17,11 +17,15 @@ class Channel:
         """
         self.__channel_id = channel_id
         youtube = build('youtube', 'v3', developerKey=api_key)
-        channel = youtube.channels().list(id=self.__channel_id, part='snippet,statistics').execute()
+        channel = youtube.channels().list(id=self.__channel_id,
+                                          part='snippet,statistics').execute()
         self.title = channel['items'][0]['snippet']['title']
-        self.description = channel['items'][0]['snippet']['description']
-        self.url = f"https://www.youtube.com/channel/{channel['items'][0]['id']}"
-        self.subscriberCount = channel['items'][0]['statistics']['subscriberCount']
+        self.description = (
+            channel)['items'][0]['snippet']['description']
+        self.url = \
+            f"https://www.youtube.com/channel/{channel['items'][0]['id']}"
+        self.subscriberCount = (
+            channel)['items'][0]['statistics']['subscriberCount']
         self.video_count = channel['items'][0]['statistics']['videoCount']
         self.viewCount = channel['items'][0]['statistics']['viewCount']
 
