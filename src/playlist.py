@@ -1,4 +1,3 @@
-from src.video import Video
 from src.channel import Channel
 from dotenv import load_dotenv
 from datetime import timedelta
@@ -15,24 +14,26 @@ class PlayList:
     def __init__(self, _id_):
         self.__id = _id_
         self.url = f"https://www.youtube.com/playlist?list={_id_}"
-        playlist_videos = (self.youtube.playlistItems().
-                           list(playlistId=_id_,
-                                part='contentDetails,snippet',
-                                maxResults=50,
-                                ).execute())
-        self.title = playlist_videos["items"][0]["snippet"]["title"]
+        self.playlist_videos = (self.youtube.playlistItems().
+                                list(playlistId=_id_,
+                                     part='contentDetails,snippet',
+                                     maxResults=50,
+                                     ).execute())
+        video_ids = self.get_videos()
+        self.response = self.youtube.videos().list(part='contentDetails,statistics',
+                                                   id=','.join(video_ids)
+                                                   ).execute()
+        playlist_info = self.youtube.playlists().list(id=self.__id,
+                                                      part='snippet',
+                                                      ).execute()
+        self.title = playlist_info['items'][0]['snippet']['title']
 
     def get_videos(self):
         """
         Получить список id видео, находящиеся в плейлисте
         """
-        playlist_videos = (self.youtube.playlistItems().
-                           list(playlistId=self.__id,
-                                part='contentDetails',
-                                maxResults=50,
-                                ).execute())
         video_ids: list[str] = [video['contentDetails']['videoId']
-                                for video in playlist_videos['items']]
+                                for video in self.playlist_videos['items']]
         return video_ids
 
     @property
@@ -41,15 +42,10 @@ class PlayList:
         Возвращает объект класса `datetime.timedelta`
         с суммарной длительность плейлиста
         """
-        video_ids = self.get_videos()
-
-        response = self.youtube.videos().list(part='contentDetails,statistics',
-                                              id=','.join(video_ids)
-                                              ).execute()
 
         total_duration = timedelta(hours=0)
 
-        for video in response['items']:
+        for video in self.response['items']:
             # YouTube video duration is in ISO 8601 format
             iso_8601_duration = video['contentDetails']['duration']
             duration = isodate.parse_duration(iso_8601_duration)
@@ -62,8 +58,12 @@ class PlayList:
         Возвращает ссылку на самое популярное
         видео из плейлиста (по количеству лайков)
         """
-        video_ids = self.get_videos()
+        max_likes = 0
+        video_id = ''
+        for video in self.response['items']:
+            like_count = int(video['statistics']['likeCount'])
+            if like_count > max_likes:
+                max_likes = like_count
+                video_id = video['id']
 
-        max_video_ids = max([video.likeCount, video.id]
-                            for video in [Video(video) for video in video_ids])
-        return f"https://youtu.be/{max_video_ids[1]}"
+        return f'https://youtu.be/{video_id}'
