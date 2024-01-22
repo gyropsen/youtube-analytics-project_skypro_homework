@@ -1,5 +1,5 @@
-from googleapiclient.discovery import build
 from src.video import Video
+from src.channel import Channel
 from dotenv import load_dotenv
 from datetime import timedelta
 import os
@@ -10,17 +10,30 @@ api_key = os.getenv("YT_API_KEY")
 
 
 class PlayList:
+    youtube = Channel.get_service()
+
     def __init__(self, _id_):
         self.__id = _id_
         self.url = f"https://www.youtube.com/playlist?list={_id_}"
-        youtube = build('youtube', 'v3', developerKey=api_key)
-        playlist_videos = (youtube.playlistItems().
+        playlist_videos = (self.youtube.playlistItems().
                            list(playlistId=_id_,
                                 part='contentDetails,snippet',
                                 maxResults=50,
                                 ).execute())
-        # print(playlist_videos)
         self.title = playlist_videos["items"][0]["snippet"]["title"]
+
+    def get_videos(self):
+        """
+        Получить список id видео, находящиеся в плейлисте
+        """
+        playlist_videos = (self.youtube.playlistItems().
+                           list(playlistId=self.__id,
+                                part='contentDetails',
+                                maxResults=50,
+                                ).execute())
+        video_ids: list[str] = [video['contentDetails']['videoId']
+                                for video in playlist_videos['items']]
+        return video_ids
 
     @property
     def total_duration(self):
@@ -28,18 +41,11 @@ class PlayList:
         Возвращает объект класса `datetime.timedelta`
         с суммарной длительность плейлиста
         """
-        youtube = build('youtube', 'v3', developerKey=api_key)
-        playlist_videos = youtube.playlistItems().list(playlistId=self.__id,
-                                                       part='contentDetails',
-                                                       maxResults=50,
-                                                       ).execute()
+        video_ids = self.get_videos()
 
-        video_ids: list[str] = [video['contentDetails']['videoId']
-                                for video in playlist_videos['items']]
-
-        response = youtube.videos().list(part='contentDetails,statistics',
-                                         id=','.join(video_ids)
-                                         ).execute()
+        response = self.youtube.videos().list(part='contentDetails,statistics',
+                                              id=','.join(video_ids)
+                                              ).execute()
 
         total_duration = timedelta(hours=0)
 
@@ -56,12 +62,8 @@ class PlayList:
         Возвращает ссылку на самое популярное
         видео из плейлиста (по количеству лайков)
         """
-        youtube = build('youtube', 'v3', developerKey=api_key)
-        playlist_videos = youtube.playlistItems().list(playlistId=self.__id,
-                                                       part='contentDetails',
-                                                       maxResults=50,
-                                                       ).execute()
-        max_video_ids = max([video.likeCount, video.id] for video in
-                            [Video(video['contentDetails']['videoId'])
-                             for video in playlist_videos['items']])
+        video_ids = self.get_videos()
+
+        max_video_ids = max([video.likeCount, video.id]
+                            for video in [Video(video) for video in video_ids])
         return f"https://youtu.be/{max_video_ids[1]}"
