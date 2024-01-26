@@ -8,17 +8,24 @@ api_key = os.getenv("YT_API_KEY")
 
 class Video:
     def __init__(self, video_id):
-        self.id = video_id
-        youtube = build('youtube', 'v3', developerKey=api_key)
-        video_response = (
-            youtube.videos().list(
-                part='snippet,statistics,contentDetails,topicDetails',
-                id=video_id
-            ).execute())
-        self.title = video_response["items"][0]["snippet"]["title"]
-        self.url = f"https://www.youtube.com/watch?v={video_id}"
-        self.viewCount = video_response["items"][0]["statistics"]["viewCount"]
-        self.likeCount = video_response["items"][0]["statistics"]["likeCount"]
+        try:
+            self.id = video_id
+            youtube = build('youtube', 'v3', developerKey=api_key)
+            video_response = (
+                youtube.videos().list(
+                    part='snippet,statistics,contentDetails,topicDetails',
+                    id=video_id
+                ).execute())
+            self.title = video_response["items"][0]["snippet"]["title"]
+            self.url = f"https://www.youtube.com/watch?v={video_id}"
+            self.viewCount = video_response["items"][0]["statistics"]["viewCount"]
+            self.like_count = video_response["items"][0]["statistics"]["likeCount"]
+        except IndexError:
+            self.id = video_id
+            self.title = None
+            self.url = None
+            self.viewCount = None
+            self.like_count = None
 
     def __str__(self):
         return f"{self.title}"
